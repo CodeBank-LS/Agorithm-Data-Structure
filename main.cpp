@@ -1,268 +1,136 @@
-//
-// Created by L Su on 23/9/2022.
-//
+//created by L Su on 12/10/2019
 /*
-Sample input 1: A1 A2 A3 IN
-Sample output 1: 1 2 3
-Sample input 2: A1 A2 A3 PRE
-Sample output 2: 2 1 3
-Sample input 3: A1 D1 POST
-Sample output 3: EMPTY
-*/
-/* Mindset:
-1. construct AVL tree (height check,balance operation：rr,ll,lr,rl)
-2. insert/search/delete node=>form a new structure tree
-3. balance the new structure tree
-4. print node's key based on preorder/inorder/postorder
-*/
+Hash table with linear probing
+The keys are lower-case English words 
+A table slot has three different statuses: “never used”, “tombstone”, and “occupied”. Table starts with
+26 “never used” slots.
 
-#include <iostream>
+Sample input 1: Aaaa Accc Abbb
+Sample output 1: aaa bbb ccc
+Sample input 2: Abba Aaaa Acca
+Sample output 2: bba aaa cca
+Sample input 3: Abba Aaaa Acca Daaa
+Sample output 3: bba cca
+*/
+#include<iostream>
 #include<string>
-#include<sstream>
+#include<cstring> 
 using namespace std;
-//AVL tree implementation
-// AVL tree implementation in C++
-
-#include <iostream>
-using namespace std;
-
-class AVL_Node {
+//a class for each slot in the hash table
+class TableSlot{
 public:
-    int key;
-    AVL_Node *left;
-    AVL_Node *right;
-    int height;//height of the node
+    string value;//the value of the slot
+    string status;//occupied, tombstone, or never used
 };
 
+//class for hash table
+class HashTable{
+public:
+    HashTable();
 
-// Calculate height，balance（）需要
-int height(AVL_Node *N) {
-    if (N == NULL)
-        return 0;
-    return N->height;
-}
-//函数用来计算balance factor
-int max(int a, int b) {
-    return (a > b) ? a : b;
-}
-// construct a new node
-AVL_Node *newNode(int key){
-    AVL_Node *node = new AVL_Node();
-    node->key = key;
-    node->left = NULL;
-    node->right = NULL;
-    node->height = 1;
-    return (node);
-}
-//Four rotations to balance the tree
-// Right rotate
-AVL_Node *RR(AVL_Node *y){
-    AVL_Node *x = y->left;
-    AVL_Node *T2 = x->right;
-    x->right = y;
-    y->left = T2;
-    y->height = max(height(y->left),
-                    height(y->right)) +
-                1;
-    x->height = max(height(x->left),
-                    height(x->right)) +
-                1;
-    return x;
-}
+    HashTable(string input){
+        int i, k;
+        char val[20];
 
-// Rotate left
-AVL_Node *LR(AVL_Node *x) {
-    AVL_Node *y = x->right;
-    AVL_Node *T2 = y->left;
-    y->left = x;
-    x->right = T2;
-    x->height = max(height(x->left),
-                    height(x->right)) +
-                1;
-    y->height = max(height(y->left),
-                    height(y->right)) +
-                1;
-    return y;
-}
-
-// Get the balance factor of each node，每次insert、delete后要对bst进行balance操作
-int getBalanceFactor(AVL_Node *N) {
-    if (N == NULL)
-        return 0;
-    //balance factor = height of left subtree - height of right subtree
-    return height(N->left) -
-           height(N->right);
-}
-//Search a node 构建search等下delete需要
-AVL_Node *searchNode(AVL_Node *root, int key) {
-    if (root == NULL || root->key == key)
-        return root;
-    if (root->key < key){
-        return searchNode(root->right, key);
-    }else{
-        return searchNode(root->left, key);
-    }
-}
-//balance the tree
-AVL_Node *balance(AVL_Node *node) {
-    node->height = 1 + max(height(node->left),
-                           height(node->right));
-    int balanceFactor = getBalanceFactor(node);
-    if (balanceFactor > 1) {
-        //left subtree is heavier
-        if (getBalanceFactor(node->left) >= 0) {
-            //right-right case
-            return RR(node);
-        } else {
-            //left-right case
-            node->left = LR(node->left);
-            return RR(node);
+        for (i = 0; i < 26; i++)
+        {
+                    table[i].status = "never used";//initialize the table each slot to "never used"
         }
-    }
-    if (balanceFactor < -1) {
-        //right subtree is heavier
-        if (getBalanceFactor(node->right) <= 0) {
-            //left-right case
-            return LR(node);
-        } else {
-            //right-right case
-            node->right = RR(node->right);
-            return LR(node);
-        }
-    }
-    return node;
-}
-// Insert a node
-AVL_Node *insertNode(AVL_Node *node, int key) {
-    // If key is already in the tree
-    if(searchNode(node,key)!=NULL){
-        return node;
-    }else{
-    if (node == NULL)
-        return (newNode(key));
-    if (key < node->key)
-        node->left = insertNode(node->left, key);
-    else if (key > node->key)
-        node->right = insertNode(node->right, key);
-    else
-        return node;
 
-    // Update the balance factor of each node and
-    // balance the tree
-    return balance(node);
-    }
-}
-//两个获取最大最小值节点的函数，删除节点需要
-//get max value node 
-AVL_Node *nodeMax(AVL_Node *node) {
-    AVL_Node *max = node;
-    while (max->right != NULL)
-        max = max->right;
-    return max;
-}
-//get min value node
-AVL_Node *nodeMin(AVL_Node *node) {
-    AVL_Node *min = node;
-    while (min->left != NULL)
-        min = min->left;
-    return min;
-}
-// Delete a node
-AVL_Node *deleteNode(AVL_Node *root, int k) {  
-    // 树如果是空或者不存在该节点
-    if (root == NULL||searchNode(root,k)==NULL)
-        return root;
-    //否则左右递归删除
-    if (k < root->key)
-         root->left = deleteNode(root->left, k);
-      else if (k > root->key)
-         root->right = deleteNode(root->right, k);
-   else{
-    //如果左子树为空
-      if (root->left == NULL){
-         AVL_Node *temp = root->right;
-         free(root);
-         return temp;
-      }
-      else if (root->right == NULL){//如果右子树为空
-         AVL_Node *temp = root->left;
-         free(root);
-         return temp;
-      }
-      //如果左右子树都不为空 用左子树的最大值替换被删掉的节点（题意要求）
-      //也可以用右子树的最小值替换被删掉的节点
-      AVL_Node* temp = nodeMax(root->left);
-        root->key = temp->key;
-        root->left = deleteNode(root->left, temp->key);
-   }
-   return balance(root);
+        for (i = 0, k = 0; i <= input.length(); i++)
+        {//读入字符串，每次读入一个单词
+            if (input[i] == ' ' || input[i] == '\0')
+            {
+                        val[k] = '\0';//每次读入一个单词后，将单词的最后一个字符设为'\0'
 
-    }
-  
-    
-
-
-// Print the tree in different orders
-void preorder(AVL_Node *root) {
-    if (root != NULL) {
-        cout << root->key << " ";
-        preorder(root->left);
-        preorder(root->right);
-    }
-    
-}
-
-void inorder(AVL_Node *root) {
-    if (root != NULL) {
-        inorder(root->left);
-        cout << root->key << " ";
-        inorder(root->right);
-    }
-    
-}
-
-void postorder(AVL_Node *root) {
-    if (root != NULL) {
-        postorder(root->left);
-        postorder(root->right);
-        cout << root->key << " ";
-    }
-    
-}
-
-int main() {
-    AVL_Node *root = NULL;
-    string line;
-    getline(cin, line, '\n');
-    stringstream ss;
-    ss.str(line);
-    string tempstr;
-    while (ss >> tempstr) {
-        if (tempstr[0] == 'A') {
-            root = insertNode(root, atoi(tempstr.substr(1).c_str()));
-        } 
-        if (tempstr[0] == 'D') {
-            root = deleteNode(root, atoi(tempstr.substr(1).c_str()));
-        }
-        if(tempstr=="PRE"){
-            if(root==NULL){
-                cout<<"EMPTY"<<endl;   
+                append(val);//将单词插入到哈希表中
+                k = 0;//将k置为0，准备读入下一个单词
             }
-            preorder(root);
-        }
-        if(tempstr=="IN"){
-            if(root==NULL){
-                cout<<"EMPTY"<<endl;   
+            else
+            {
+                        val[k++] = input[i];//将单词的每个字符读入val数组中
+                      //  cout <<k<<" "<< val[k - 1]<<endl;
             }
-            inorder(root);
         }
-        if(tempstr=="POST"){
-            if(root==NULL){
-                cout<<"EMPTY"<<endl;   
+
+    };
+
+    void append(const char str[]){
+        int len = strlen(str);//计算单词的长度
+        if (len <= 1) return;//如果单词为空或者长度为1，则不插入哈希表中
+        char opt = str[0];//取单词的第一个字符作为操作符
+        char key = str[len - 1];//取单词的最后一个字符作为哈希表的键值(字母)
+
+        string val(&str[1]);//将单词的第二个字符到最后一个字符作为哈希表的值
+
+        if (opt == 'A')
+        {
+                    //cout<<"key is "<<key<<" value is "<<val<<endl;
+                    insert(key, val);//如果操作符为'A'，则插入单词
+        }
+        if (opt == 'D')
+        {
+                    //cout<<"key is "<<key<<" value is "<<val<<endl;
+                    remove(key, val);//如果操作符为'D'，则删除单词
+        }
+    };
+
+    void print(){
+        for(int i=0;i<26;i++){
+            if(table[i].status=="occupied"){
+                cout<<table[i].value<<" ";
             }
-            postorder(root);
         }
-    }
+    };
+
+    void insert(char key, string val){
+        int index = key-'a';//计算哈希表的键值
+        int flag = 1;//flag=1表示哈希表中没有该键值，flag=0表示哈希表中有该键值
+        while(flag==1) {
+            if (table[index].status == "never used" || table[index].status == "tombstone") {
+                //如果哈希表中该键值的状态为“never used”或者“tombstone”，则将该键值的值设为val,状态设为“occupied”
+                table[index].value = val;
+                //cout<<"index is "<<index<<" value is "<<table[index].value<<endl;
+                table[index].status = "occupied";
+                flag = 0;//将flag置为0，表示哈希表中已经有该键值
+            } else if (table[index].status == "occupied" && table[index].value == val) {
+                //如果哈希表中该键值的状态为“occupied”且该键值的值为val，则不插入该键值
+                flag = 0;//将flag置为0，表示哈希表中已经有该键值
+            } else {
+                //如果哈希表中该键值的状态为“occupied”且该键值的值不为val，则将index+1对26取余，继续查找
+                index=(index+1)%26;//
+            }
+        }
+    };
+
+    void remove(char key, string val){
+        int index = key-'a';
+        int flag = 1;
+        while(flag==1) {
+            if (table[index].status == "never used") {
+                //如果哈希表中该键值的状态为“never used”，则不删除该键值
+                flag = 0;
+            } else if (table[index].status == "occupied" && table[index].value == val) {
+                //如果哈希表中该键值的状态为“occupied”且该键值的值为val，则将该键值的状态设为“tombstone”
+                table[index].status = "tombstone";
+                //cout<<"index is "<<index<<" value is "<<table[index].value<<endl;
+                flag = 0;
+            }  else{
+                //如果哈希表中该键值的状态为“occupied”且该键值的值不为val，则将index+1对26取余，继续查找
+                index=(index+1)%26;
+             
+            }
+        }
+    };
+
+
+    TableSlot table[26];//定义哈希表，哈希表的键值为26个字母，值为单词
+};
+
+int main(){
+    string input;//定义输入字符串
+    getline(cin,input);//读入输入字符串
+    HashTable table(input);
+    table.print();
     return 0;
 }
-
