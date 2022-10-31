@@ -1,294 +1,268 @@
 //
-// Created by L Su on 17/8/2022.
+// Created by L Su on 23/9/2022.
 //
 /*
-You must follow this guideline! Your submission will be marked automatically. Failure to
-follow this guideline will result in 0.
-Your submission should contain exactly one file: main.cpp. You do not need to submit a design.
-Your program takes one line as input.
-The input line contains three integers separated by spaces. Let
-the three integers be I1, I2, and B. I1 and I2 are both nonnegative integers up to 100 digits long (there are
-no leading 0s, except when the value itself is 0). B is I1 and I2’s base (B is from 2 to 10).1
-Your program should output the sum of I1 and I2, using the school method, then the product of I1 and
-I2, using the Karatsuba algorithm, and finally the ratio between I1 and I2 (rounded down). You are asked
-to come up with a way to perform this division. It’s not covered in lectures. I2 will not be 0.
-The results should still use base B. Please separate the results using one space.
-Sample input 1: 101 5 10
-Sample output 1: 106 505 20
-Sample input 2: 10 111 2
-Sample output 2: 1001 1110 0
-Sample input 3: 111 10 2
-Sample output 2: 1001 1110 11
-If you are an undergraduate student, simply output 0 as the division result. For sample 3, instead of
-1001 1110 11, simply output 1001 1110 0
- */
+Sample input 1: A1 A2 A3 IN
+Sample output 1: 1 2 3
+Sample input 2: A1 A2 A3 PRE
+Sample output 2: 2 1 3
+Sample input 3: A1 D1 POST
+Sample output 3: EMPTY
+*/
+/* Mindset:
+1. construct AVL tree (height check,balance operation：rr,ll,lr,rl)
+2. insert/search/delete node=>form a new structure tree
+3. balance the new structure tree
+4. print node's key based on preorder/inorder/postorder
+*/
+
 #include <iostream>
 #include<string>
-#include<vector>
+#include<sstream>
+using namespace std;
+//AVL tree implementation
+// AVL tree implementation in C++
 
+#include <iostream>
 using namespace std;
 
-string removeZero(string str){
-   str.erase(0, str.find_first_not_of('0'));
-   return str;
+class AVL_Node {
+public:
+    int key;
+    AVL_Node *left;
+    AVL_Node *right;
+    int height;//height of the node
+};
+
+
+// Calculate height，balance（）需要
+int height(AVL_Node *N) {
+    if (N == NULL)
+        return 0;
+    return N->height;
+}
+//函数用来计算balance factor
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
+// construct a new node
+AVL_Node *newNode(int key){
+    AVL_Node *node = new AVL_Node();
+    node->key = key;
+    node->left = NULL;
+    node->right = NULL;
+    node->height = 1;
+    return (node);
+}
+//Four rotations to balance the tree
+// Right rotate
+AVL_Node *RR(AVL_Node *y){
+    AVL_Node *x = y->left;
+    AVL_Node *T2 = x->right;
+    x->right = y;
+    y->left = T2;
+    y->height = max(height(y->left),
+                    height(y->right)) +
+                1;
+    x->height = max(height(x->left),
+                    height(x->right)) +
+                1;
+    return x;
 }
 
-string addition(string I1, string I2, int B)
-{
-    int len1 = I1.length();
-    int len2 = I2.length();
-    int len = max(len1, len2);
-    string result = "";
-    int carry = 0; //第一位carry为0
-    for (int i = 0; i < len; i++)
-    {
-        int a = 0;
-        int b = 0;
-        if (i < len1) //a是I1从右向左的每一位的数字
-            a = I1[len1 - 1 - i] - '0';//ASIIC中对应回数字要-'0'
-
-       
-        if (i < len2)
-            b = I2[len2 - 1 - i] - '0';//b是I2从右向左的每一位的数字
-
-        int sum = a + b + carry;
-        carry = sum / B; //计算向左进位
-        sum = sum % B; //计算本位数字
-        result = to_string(sum) + result; //本位数字字符串+右侧数字位字符串： 3+9="2"+""； carry="1"
-    }
-    if (carry > 0)
-        result = to_string(carry) + result;//结合最左侧进位 3+9="1"+"2"
-    return result;
-
+// Rotate left
+AVL_Node *LR(AVL_Node *x) {
+    AVL_Node *y = x->right;
+    AVL_Node *T2 = y->left;
+    y->left = x;
+    x->right = T2;
+    x->height = max(height(x->left),
+                    height(x->right)) +
+                1;
+    y->height = max(height(y->left),
+                    height(y->right)) +
+                1;
+    return y;
 }
 
-string multiplication(string I1, string I2, int B)
-{
-    int len1 = I1.size();
-    int len2 = I2.size();
-    if (len1 == 0 || len2 == 0)
-        return "0";
-
-    //初始化长度为len1+len2的全0向量
-    vector<int> vec(len1 + len2, 0);
-
-    //追踪result位置
-    int i_n1 = 0;
-    int i_n2 = 0;
-
-    //从右向左遍历I1
-    for (int i=len1-1; i>=0; i--)
-    {
-        int carry = 0;
-        int n1 = I1[i] - '0';//I1当前位数
-        //cout<<"n1 is: "<<n1<<endl;
-
-
-        //I1和I2的每一位数乘后向左移
-        i_n2 = 0;
-
-        // 从右向左遍历I2
-        for (int j=len2-1; j>=0; j--)
-        {
-
-            int n2 = I2[j] - '0';//I2当前位数
-            //cout<<"n2 is: "<<n2<<endl;
-
-            // I1和I2当前位数相乘，再加上之前的结果，再加carry
-            int sum = n1*n2 + vec[i_n1 + i_n2] + carry;
-            //cout<<"sum is: "<<sum<<endl;
-
-
-            carry = sum/B;//计算进位，下一iteration用
-            //cout<<"carry is: "<<carry<<endl;
-
-            vec[i_n1 + i_n2] = sum % B;//存储结果去vector result
-            //cout<<"result is: "<<result[i_n1+i_n2]<<endl;
-
-            i_n2++;
-        }
-
-
-        if (carry > 0)
-            vec[i_n1 + i_n2] += carry;
-
-        //向左移动
-        i_n1++;
-    }
-
-    // 忽略右侧的0，因为之后是反过来的
-    int i = vec.size() - 1;
-//    while (i>=0 && result[i] == 0)
-//        i--;
-//
-//    //如果一直都是0，那乘数中必有一个是0
-//    if (i == -1)
-//        return "0";
-
-
-    string result = "";
-
-    while (i >= 0)
-        result += to_string(vec[i--]);//反过来的 i--
-
-    // //remove leading 0
-    // const regex pattern("^0+(?!$)");
-    // result = regex_replace(result, pattern, "");
-  
-
-    return removeZero(result);
-
+// Get the balance factor of each node，每次insert、delete后要对bst进行balance操作
+int getBalanceFactor(AVL_Node *N) {
+    if (N == NULL)
+        return 0;
+    //balance factor = height of left subtree - height of right subtree
+    return height(N->left) -
+           height(N->right);
 }
-
-string subtraction(string I1, string I2,int B)
-{
-
-    string result = "";
-
-    int len1 = I1.length();
-    int len2 = I2.length();
-
-    // 反转字符串
-    reverse(I1.begin(), I1.end());
-    reverse(I2.begin(), I2.end());
-
-    int carry = 0;
-
-    // Run loop till small string length
-    // and subtract digit of str1 to str2
-    for (int i = 0; i < len2; i++) {
-
-        //当前位置的减法结果
-        int sub = ((I1[i] - '0')- (I2[i] - '0')- carry);
-
-        // If subtraction < 0 then add 10
-        // into sub and take carry as 1
-        if (sub < 0) {
-            sub = sub + B;
-            carry = 1;
-        }
-        else
-            carry = 0;
-
-        result.push_back(sub + '0');
+//Search a node 构建search等下delete需要
+AVL_Node *searchNode(AVL_Node *root, int key) {
+    if (root == NULL || root->key == key)
+        return root;
+    if (root->key < key){
+        return searchNode(root->right, key);
+    }else{
+        return searchNode(root->left, key);
     }
-
-    // Subtract the remaining digits of
-    // larger number
-    for (int i = len2; i < len1; i++) {
-        int sub = ((I1[i] - '0') - carry);
-
-        // If the sub value is -ve,
-        // then make it positive
-        if (sub < 0) {
-            sub = sub + B;
-            carry = 1;
+}
+//balance the tree
+AVL_Node *balance(AVL_Node *node) {
+    node->height = 1 + max(height(node->left),
+                           height(node->right));
+    int balanceFactor = getBalanceFactor(node);
+    if (balanceFactor > 1) {
+        //left subtree is heavier
+        if (getBalanceFactor(node->left) >= 0) {
+            //right-right case
+            return RR(node);
+        } else {
+            //left-right case
+            node->left = LR(node->left);
+            return RR(node);
         }
-        else
-            carry = 0;
-
-        result.push_back(sub + '0');
     }
+    if (balanceFactor < -1) {
+        //right subtree is heavier
+        if (getBalanceFactor(node->right) <= 0) {
+            //left-right case
+            return LR(node);
+        } else {
+            //right-right case
+            node->right = RR(node->right);
+            return LR(node);
+        }
+    }
+    return node;
+}
+// Insert a node
+AVL_Node *insertNode(AVL_Node *node, int key) {
+    // If key is already in the tree
+    if(searchNode(node,key)!=NULL){
+        return node;
+    }else{
+    if (node == NULL)
+        return (newNode(key));
+    if (key < node->key)
+        node->left = insertNode(node->left, key);
+    else if (key > node->key)
+        node->right = insertNode(node->right, key);
+    else
+        return node;
 
+    // Update the balance factor of each node and
+    // balance the tree
+    return balance(node);
+    }
+}
+//两个获取最大最小值节点的函数，删除节点需要
+//get max value node 
+AVL_Node *nodeMax(AVL_Node *node) {
+    AVL_Node *max = node;
+    while (max->right != NULL)
+        max = max->right;
+    return max;
+}
+//get min value node
+AVL_Node *nodeMin(AVL_Node *node) {
+    AVL_Node *min = node;
+    while (min->left != NULL)
+        min = min->left;
+    return min;
+}
+// Delete a node
+AVL_Node *deleteNode(AVL_Node *root, int k) {  
+    // 树如果是空或者不存在该节点
+    if (root == NULL||searchNode(root,k)==NULL)
+        return root;
+    //否则左右递归删除
+    if (k < root->key)
+         root->left = deleteNode(root->left, k);
+      else if (k > root->key)
+         root->right = deleteNode(root->right, k);
+   else{
+    //如果左子树为空
+      if (root->left == NULL){
+         AVL_Node *temp = root->right;
+         free(root);
+         return temp;
+      }
+      else if (root->right == NULL){//如果右子树为空
+         AVL_Node *temp = root->left;
+         free(root);
+         return temp;
+      }
+      //如果左右子树都不为空 用左子树的最大值替换被删掉的节点（题意要求）
+      //也可以用右子树的最小值替换被删掉的节点
+      AVL_Node* temp = nodeMax(root->left);
+        root->key = temp->key;
+        root->left = deleteNode(root->left, temp->key);
+   }
+   return balance(root);
 
-   //倒转string
-    reverse(result.begin(), result.end());
-
-    //remove leading 0
+    }
   
     
-    cout<<"减法结果： "<<removeZero(result)<<endl;
 
-    return removeZero(result);
+
+// Print the tree in different orders
+void preorder(AVL_Node *root) {
+    if (root != NULL) {
+        cout << root->key << " ";
+        preorder(root->left);
+        preorder(root->right);
+    }
+    
 }
 
-string Karatsuba(string I1,string I2,int B){
-    if (I1.length() > I2.length())
-        swap(I1, I2);
-
-    //变一样长
-    int len1 = I1.length(), len2 = I2.length();
-    while (len2 > len1) {
-        I1 = "0" + I1; //把短的string左边加"0"变长
-        len1++;
+void inorder(AVL_Node *root) {
+    if (root != NULL) {
+        inorder(root->left);
+        cout << root->key << " ";
+        inorder(root->right);
     }
-
-    // Base case
-    if (len1 == 1) {
-
-       //一位数直接乘
-        int result = stoi(I1) * stoi(I2);
-        return to_string(result);
-    }
-
-    //位数是奇数的话前面加0变偶数
-    if (len1 % 2 == 1) {
-        len1++;
-        I1 = "0" + I1;
-        I2 = "0" + I2;
-    }
-
-    string Al, Ar, Bl, Br;
-
-    //字符串拆开
-    for (int i = 0; i < len1 / 2; ++i) {
-        Al += I1[i];
-        Bl += I2[i];
-        Ar += I1[len1 / 2 + i];
-        Br += I2[len1 / 2 + i];
-    }
-
-    //递归call
-
-    //  Al * Bl相乘
-    string p = multiplication(Al, Bl, B);
-
-    // Ar * Br相乘
-    string q = multiplication(Ar, Br, B);
-
-    // ((Al + Ar)*(Bl + Br)- Al*Bl - Ar*Br
-    string r = subtraction(
-            multiplication(addition(Al, Ar,B),
-                            addition(Bl, Br,B),
-                                B),
-            addition(p, q,B),
-            B);
-
-    // p*(10^n)
-    for (int i = 0; i < len1; ++i)
-        p = p + "0";
-
-    // s* 10^(n/2)
-    for (int i = 0; i < len1 / 2; ++i)
-        r = r + "0";
-
-    //计算 p + r + s
-    string result = addition(p, addition(q, r,B),B);
-
-    // // Remove leading zeroes
-    // const regex pattern("^0+(?!$)");
-    // result= regex_replace(result, pattern, "");
-
-    return removeZero(result);
-
-
-
+    
 }
 
-int main(){
-    string I1,I2;
-    int B;
-    cin>>I1>>I2>>B;
-    cout<<addition(I1,I2,B)<<" ";
-    if(I1.size()<4&&I2.size()<4){
-        cout<<multiplication(I1,I2,B)<<" ";
-    }else{
-        cout<<Karatsuba(I1,I2,B)<<" ";
+void postorder(AVL_Node *root) {
+    if (root != NULL) {
+        postorder(root->left);
+        postorder(root->right);
+        cout << root->key << " ";
     }
-    cout<<"0";
-    cout<<subtraction(I1,I2,B)<<endl;
+    
+}
 
-
-
+int main() {
+    AVL_Node *root = NULL;
+    string line;
+    getline(cin, line, '\n');
+    stringstream ss;
+    ss.str(line);
+    string tempstr;
+    while (ss >> tempstr) {
+        if (tempstr[0] == 'A') {
+            root = insertNode(root, atoi(tempstr.substr(1).c_str()));
+        } 
+        if (tempstr[0] == 'D') {
+            root = deleteNode(root, atoi(tempstr.substr(1).c_str()));
+        }
+        if(tempstr=="PRE"){
+            if(root==NULL){
+                cout<<"EMPTY"<<endl;   
+            }
+            preorder(root);
+        }
+        if(tempstr=="IN"){
+            if(root==NULL){
+                cout<<"EMPTY"<<endl;   
+            }
+            inorder(root);
+        }
+        if(tempstr=="POST"){
+            if(root==NULL){
+                cout<<"EMPTY"<<endl;   
+            }
+            postorder(root);
+        }
+    }
     return 0;
 }
+
